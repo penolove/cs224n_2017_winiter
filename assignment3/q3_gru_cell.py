@@ -64,6 +64,44 @@ class GRUCell(tf.contrib.rnn.RNNCell):
         # be defined elsewhere!
         with tf.variable_scope(scope):
             ### YOUR CODE HERE (~20-30 lines)
+            # reset gate
+            U_r = tf.get_variable("U_r", shape=(self.input_size, self.state_size),
+                                  initializer=tf.contrib.layers.xavier_initializer())
+            W_r = tf.get_variable("W_r", shape=(self.state_size, self.state_size),
+                                  initializer=tf.contrib.layers.xavier_initializer())
+            b_r = tf.get_variable("b_r", shape=[self.state_size],
+                                  initializer=tf.constant_initializer(0.0))
+            # Update gate
+            U_z = tf.get_variable("U_z", shape=(self.input_size, self.state_size),
+                                  initializer=tf.contrib.layers.xavier_initializer())
+            W_z = tf.get_variable("W_z", shape=(self.state_size, self.state_size),
+                                  initializer=tf.contrib.layers.xavier_initializer())
+            b_z = tf.get_variable("b_z", shape=[self.state_size],
+                                  initializer=tf.constant_initializer(0.0))
+            #New memory
+            U_o = tf.get_variable("U_o", shape=(self.input_size, self.state_size),
+                                  initializer=tf.contrib.layers.xavier_initializer())
+            W_o = tf.get_variable("W_o", shape=(self.state_size, self.state_size),
+                                  initializer=tf.contrib.layers.xavier_initializer())
+            b_o = tf.get_variable("b_o", shape=[self.state_size],
+                                  initializer=tf.constant_initializer(0.0))
+    
+            #z_t = sigmoid(x_t U_z + h_{t-1} W_z + b_z)
+            update_gate = tf.nn.sigmoid(tf.matmul(state, W_z, name="xW_z") +
+                                      tf.matmul(inputs, U_z, name="hU_z") +
+                                      tf.expand_dims(b_z, 0))
+            #r_t = sigmoid(x_t U_r + h_{t-1} W_r + b_r)
+            reset_gate = tf.nn.sigmoid(tf.matmul(state, W_r, name="xW_r") +
+                                      tf.matmul(inputs, U_r, name="hU_r") +
+                                      tf.expand_dims(b_r, 0))
+            #o_t = tanh(x_t U_o + r_t * h_{t-1} W_o + b_o)
+            new_memory = tf.nn.tanh(reset_gate *tf.matmul(state, W_o, name="xW_o") +
+                                      tf.matmul(inputs, U_o, name="hU_o") +
+                                      tf.expand_dims(b_o, 0))
+
+            #h_t = z_t * h_{t-1} + (1 - z_t) * o_t
+            # tensorflow automatic broadcast
+            new_state = h_t = update_gate* state + (1.0 - update_gate) * new_memory
             pass
             ### END YOUR CODE ###
         # For a GRU, the output and state are the same (N.B. this isn't true
